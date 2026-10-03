@@ -1,8 +1,6 @@
 # Small-scale corrections to the Kirchhoff approximation: code for the figures and validation
 
-<!-- Replace 12345678 (twice) with the Zenodo concept DOI ("Cite all versions") once the first release is archived.
-     The concept DOI always resolves to the latest version; the version DOIs point to a fixed release. -->
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.12345678.svg)](https://doi.org/10.5281/zenodo.12345678)
+[![DOI](https://zenodo.org/badge/1403194780.svg)](https://zenodo.org/badge/latestdoi/1403194780)
 
 Python code that generates the figures of the Results section (Figs. 2–4) of
 
