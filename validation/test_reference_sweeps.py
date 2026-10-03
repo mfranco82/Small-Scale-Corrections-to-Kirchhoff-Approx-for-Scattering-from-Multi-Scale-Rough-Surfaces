@@ -1,5 +1,5 @@
 """
-Reference (Rayleigh) vs independent C-method on samples of the parameter sweeps of Figs. 3 and 4:
+Reference (Rayleigh) vs independent C-method on samples of cosine two-scale profiles over the ranges of the parametric studies of the paper:
 dielectric constant (eps = 1.2 ... 16), incidence angle (5 ... 58 deg) and roughness amplitude (kb up to 1), TE and TM.
 Prints (i) the relative L1 distance between the efficiencies of both solvers and (ii) the worst per-order relative difference
 among the orders with e > 1e-7 (reflected and transmitted).  Both solvers retain rmax = r_trans + 25 orders.

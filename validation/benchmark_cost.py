@@ -1,23 +1,20 @@
 """
-Cost of the different routes for the same problem (timings: best of REP runs; run it on an otherwise idle machine).
+Cost of the different routes for one profile (Table 1 of the paper; timings: best of REP runs, one core; run it on an otherwise idle machine).
 
-Profile: z = a cos(Kx) + b cos(Lambda K x) (a = 0.03 L, b = 0.004 L, Lambda = 5), eps = 2.25, theta_i = 20 deg, TE,
-for L/lambda = 10 and 20 (number of retained orders = 2 rmax + 1, rmax = r_trans + 12).
-
- * single deterministic profile: C-method, Rayleigh (direct), KA + MVB (n <= 3, smooth operator already factorised)
- * statistics of random small-scale roughness (7 harmonics): Monte Carlo with K exact solutions
-   (Rayleigh or C-method) versus the analytic average of ensemble.py (3 recursion runs per harmonic)
+Profile of Fig. 2(a): z = a cos(Kx) + b cos(Lambda K x), a = 0.03 L, Lambda = 15, kb = 0.25, L = 10 lambda, sin(theta_i) = 0.35, eps = 2.25, TE.
+  * exact reference solutions of the full profile: Rayleigh (direct) and C-method
+  * KA applied to the full profile (the two-scale Kirchhoff model)
+  * series KA + MVB (n <= 3): zeroth order (KA or exact) + factorization of the smooth-profile operator (both done once) + recursion
+usage: python benchmark_cost.py          (forces single-thread BLAS; run it on an otherwise idle machine)
 """
-import os, sys
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))   # scattering.py, ensemble.py, ... live in the parent folder
-import time
+import os, sys, time
+for _v in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS"): os.environ[_v] = "1"          # single-core timings (set before importing numpy)
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))   # scattering.py, cmethod.py, ... live in the parent folder
 import numpy as np
 from scattering import *
 from cmethod import c_method, spectral_derivative
-from ensemble import *
 
-REP, K_MC = 3, 2000
-HARM = [(m, 0.003 * (m / 4) ** (-0.5)) for m in range(4, 11)]
+REP, LAM, KB = 3, 15, 0.25
 
 
 def best(fn, rep=REP):
@@ -27,54 +24,23 @@ def best(fn, rep=REP):
     return min(t)
 
 
-def run(L_rel):
-    wl = 1.0 / L_rel
-    p0 = Problem(1.0, wl, np.deg2rad(20), 2.25, "TE", 30, N=2048)
-    rmax = max(int(np.abs(p0.r[p0.prop_m]).max()) + 12, 30)
-    N = 2048 if rmax < 60 else 4096
-    p = Problem(1.0, wl, np.deg2rad(20), 2.25, "TE", rmax, N=N)
-    f, f1 = cos_surface(p, 0.03); z, z1 = cos_surface(p, 0.004, 5)
-    F, F1 = f + z, f1 + z1
-    F2 = spectral_derivative(p, F, 2)
-    Bka = ka_amplitudes(p, f, f1)
-    op = SmoothOperator(p, f, f1)
-    t_c = best(lambda: c_method(p, F, F1, F2, M=rmax, delta=1e-8))
-    t_r = best(lambda: rayleigh_exact(p, F, F1))
-    t_op = best(lambda: SmoothOperator(p, f, f1))
-    t_ka = best(lambda: ka_amplitudes(p, f, f1))
-    t_m = best(lambda: mvb_coefficients(p, f, f1, z, z1, Bka, 3, smooth=op))
-    t_an = best(lambda: analytic_average(p, f, f1, Bka, HARM, smooth=op), rep=2)
-    print(f"L/lambda = {L_rel}: orders retained 2*rmax+1 = {2 * rmax + 1}, grid N = {N}")
-    print(f"  single profile : C-method {t_c * 1e3:8.0f} ms | Rayleigh {t_r * 1e3:8.0f} ms | KA+MVB(n<=3, factorisation reused) {t_m * 1e3:8.0f} ms"
-          f"  (one-off: KA {t_ka * 1e3:.0f} ms, factorisation {t_op * 1e3:.0f} ms)")
-    print(f"  random roughness ({len(HARM)} harmonics), mean efficiencies: analytic {t_an:7.2f} s ({3 * len(HARM)} recursion runs)")
-    print(f"     Monte Carlo, K={K_MC}: Rayleigh {K_MC * t_r:8.0f} s  ({K_MC * t_r / t_an:6.0f}x slower) | "
-          f"C-method {K_MC * t_c:8.0f} s  ({K_MC * t_c / t_an:6.0f}x slower)")
-    return dict(L=L_rel, rmax=rmax, t_c=t_c, t_r=t_r, t_m=t_m, t_an=t_an)
-
-
-
-
-def run_fig_ensemble(K=2000):
-    """Exactly the configuration of Fig. 2(d): random multi-scale smooth profile, theta_i = 25 deg, rmax = 40."""
-    from make_final_figures import random_profile, WL as WL_, EPS0
-    p = Problem(1.0, WL_, np.deg2rad(25), EPS0, "TE", 40, N=2048)
-    f, f1, z, z1 = random_profile(p)
-    F, F1 = f + z, f1 + z1
-    F2 = spectral_derivative(p, F, 2)
-    Bka = ka_amplitudes(p, f, f1)
-    op = SmoothOperator(p, f, f1)
-    t_c = best(lambda: c_method(p, F, F1, F2, M=40, delta=1e-8))
-    t_r = best(lambda: rayleigh_exact(p, F, F1))
-    t_m = best(lambda: mvb_coefficients(p, f, f1, z, z1, Bka, 3, smooth=op))
-    t_an = best(lambda: analytic_average(p, f, f1, Bka, HARM, smooth=op), rep=3)
-    print(f"Fig. 2(d) configuration: {2 * 40 + 1} orders retained, N = 2048")
-    print(f"  one solution: C-method {t_c * 1e3:.0f} ms | Rayleigh {t_r * 1e3:.0f} ms | KA+MVB(n<=3) {t_m * 1e3:.0f} ms")
-    print(f"  analytic average (21 runs): {t_an:.2f} s | Monte Carlo K={K}: Rayleigh {K * t_r:.0f} s ({K * t_r / t_an:.0f}x), "
-          f"C-method {K * t_c:.0f} s ({K * t_c / t_an:.0f}x)")
-
-
 if __name__ == "__main__":
-    for L_rel in (10, 20):
-        run(L_rel)
-    run_fig_ensemble()
+    th = np.arcsin(0.35)
+    p0 = Problem(1.0, 0.1, th, 2.25, "TE", 30, N=4096)
+    rmax = max(int(np.abs(p0.r[p0.prop_m]).max()) + 12, 30, 3 * LAM + 12)
+    p = Problem(1.0, 0.1, th, 2.25, "TE", rmax, N=4096)
+    f, f1 = cos_surface(p, 0.03); z, z1 = cos_surface(p, KB / p.k, LAM)
+    F, F1 = f + z, f1 + z1
+    t_ray = best(lambda: rayleigh_exact(p, F, F1))
+    t_c = best(lambda: c_method(p, F, F1, spectral_derivative(p, F, 2), M=rmax, delta=1e-8), 2)
+    t_kaf = best(lambda: ka_amplitudes(p, F, F1))
+    t_ka0 = best(lambda: ka_amplitudes(p, f, f1)); t_ex0 = best(lambda: rayleigh_exact(p, f, f1))
+    t_op = best(lambda: SmoothOperator(p, f, f1)); op = SmoothOperator(p, f, f1)
+    Bk, Bx = ka_amplitudes(p, f, f1), rayleigh_exact(p, f, f1)
+    t_ska = best(lambda: mvb_coefficients(p, f, f1, z, z1, Bk, 3, smooth=op)); t_sex = best(lambda: mvb_coefficients(p, f, f1, z, z1, Bx, 3, smooth=op))
+    print(f"profile of Fig. 2(a): Lambda={LAM}, kb={KB}, r_max={rmax} ({2 * rmax + 1} orders), N=4096")
+    print(f"  Rayleigh, full profile  {1e3 * t_ray:6.0f} ms")
+    print(f"  C-method, full profile  {1e3 * t_c:6.0f} ms")
+    print(f"  KA, full profile        {1e3 * t_kaf:6.0f} ms")
+    print(f"  series n<=3, KA zeroth order   : recursion {1e3 * t_ska:5.0f} ms  (+ once: zeroth order {1e3 * t_ka0:.0f} ms, factorization {1e3 * t_op:.0f} ms)")
+    print(f"  series n<=3, exact zeroth order: recursion {1e3 * t_sex:5.0f} ms  (+ once: zeroth order {1e3 * t_ex0:.0f} ms, factorization {1e3 * t_op:.0f} ms)")

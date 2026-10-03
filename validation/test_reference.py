@@ -1,5 +1,5 @@
 """
-Validation of the reference ("exact") solution used in the Results section.
+Validation of the reference solution used by the series (Rayleigh method) against the C-method.
 
 The reference is the Rayleigh (Fourier-Galerkin) solution of the full profile f+zeta (scattering.rayleigh_exact).
 It shares the Rayleigh expansion with the MVB recursion, so it is NOT an independent benchmark by itself.
@@ -47,9 +47,9 @@ if __name__ == "__main__":
 
     for pol in ("TE", "TM"):
         p = Problem(1.0, 0.1, np.deg2rad(20), 2.25, pol, 60)
-        compare(f"two-scale cos+cos (Fig. 2a,b) {pol}", p, 0.03 * np.cos(p.K * p.x) + 0.004 * np.cos(5 * p.K * p.x))
+        compare(f"two-scale cosine profile {pol}", p, 0.03 * np.cos(p.K * p.x) + 0.004 * np.cos(5 * p.K * p.x))
 
-    # random asymmetric profile of Fig. 2(c) (same generator / seed as make_final_figures.random_profile)
+    # random asymmetric multi-scale profile
     for pol in ("TE", "TM"):
         p = Problem(1.0, 0.1, np.deg2rad(25), 2.25, pol, 70)
         rng = np.random.default_rng(3)
@@ -60,7 +60,7 @@ if __name__ == "__main__":
                 g += am * np.cos(m * p.K * p.x + ph)
             return g
         F = rp(1, 3, 0.012, 1.0) + rp(4, 10, 0.003, 0.5)
-        compare(f"random profile (Fig. 2c) {pol}", p, F)
+        compare(f"random multi-scale profile {pol}", p, F)
 
     # strongly asymmetric profiles (a mirror-sign error in the slope would show up here, not for even profiles)
     for th in (10, 35, 50):

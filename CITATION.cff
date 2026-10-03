@@ -3,16 +3,17 @@ message: "If you use this software, please cite it using the metadata below."
 type: software
 title: "Code for: Small-Scale Corrections to the Kirchhoff Approximation for Scattering from Multi-Scale Rough Dielectric Surfaces"
 abstract: >-
-  Python code that generates the figures of the Results section and the validation scripts of the paper. A smooth periodic
-  dielectric profile is solved with the Kirchhoff approximation and the small scale is added with the method of variation
-  of boundaries taken about the periodic surface (1D, TE and TM). The reference solutions are the Rayleigh method and an
-  independent C-method solver.
+  Python code that generates the figures of the Results section and the validation scripts of the paper. The Kirchhoff approximation
+  (an expansion in the curvature of the surface) and the method of variation of boundaries (an expansion in its height) are combined for
+  dielectric surfaces made of a smooth periodic profile carrying a small-scale roughness (1D, TE and TM). The boundary variations are taken
+  about the periodic surface; the zeroth order is either the Kirchhoff amplitudes or the exact solution of the smooth profile. The reference
+  solutions are an independent C-method solver and the Rayleigh method.
 authors:
   - family-names: Franco
     given-names: Mariano
     email: mfranco@iafe.uba.ar
     affiliation: "Instituto de Astronomía y Física del Espacio (IAFE), CONICET-Universidad de Buenos Aires, Argentina"
-version: 0.1.0
+version: 0.2.0
 date-released: "2026-10-03"
 license: MIT
 repository-code: "https://github.com/mfranco82/Small-Scale-Corrections-to-Kirchhoff-Approx-for-Scattering-from-Multi-Scale-Rough-Surfaces"
